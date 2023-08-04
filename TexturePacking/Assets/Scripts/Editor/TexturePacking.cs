@@ -17,9 +17,9 @@ public class TexturePacking : EditorWindow
     public UIStage stage = UIStage.Choosing;
 
     public string textureName = "untitled";
-    public int width;
-    public int height;
-    public bool invereseSmoothness;
+    public int width = 2048;
+    public int height = 2048;
+    public bool inverseSmoothness;
 
     private string path
     {
@@ -115,18 +115,21 @@ public class TexturePacking : EditorWindow
         aTexture = TextureField("Smoothness", aTexture);
         EditorGUILayout.EndHorizontal();
 
+        GUILayout.Space(20);
+
         textureName = EditorGUILayout.TextField("Name", textureName);
         width = EditorGUILayout.IntField("Width", width);
         height = EditorGUILayout.IntField("Height", height);
-        invereseSmoothness = EditorGUILayout.Toggle("Inverse Smoothness", invereseSmoothness);
+        inverseSmoothness = EditorGUILayout.Toggle("Inverse Smoothness", inverseSmoothness);
 
-        GUILayout.Space(50);
+        GUILayout.Space(20);
 
         EditorGUILayout.BeginHorizontal();
         resTexture = TextureField("Mask Map", resTexture);
         EditorGUILayout.EndHorizontal();
 
-        GUILayout.Space(50);
+        GUILayout.Space(30);
+
 
         if (GUILayout.Button("Pack Texture"))
         {
@@ -138,10 +141,17 @@ public class TexturePacking : EditorWindow
         {
             Debug.Log("U wanna pack?");
 
-            Pack(rTexture, ColorUnpackMask(Channel.Red), "_metallic");
-            Pack(gTexture, ColorUnpackMask(Channel.Green), "_occlusion");
-            Pack(bTexture, ColorUnpackMask(Channel.Blue), "_detailMask");
-            Pack(aTexture, ColorUnpackMask(Channel.Alpha), "_smoothness");
+            if (resTexture != null)
+            {
+                Pack(rTexture, ColorUnpackMask(Channel.Red), "_metallic");
+                Pack(gTexture, ColorUnpackMask(Channel.Green), "_occlusion");
+                Pack(bTexture, ColorUnpackMask(Channel.Blue), "_detailMask");
+                Pack(aTexture, ColorUnpackMask(Channel.Alpha), "_smoothness");
+            }
+            else
+            {
+                Debug.LogError("No Mask Texture chosen!");
+            }
         }
 
         if (GUILayout.Button("Go Back"))
@@ -166,10 +176,12 @@ public class TexturePacking : EditorWindow
         bTexture = TextureField("Smoothness", bTexture);
         EditorGUILayout.EndHorizontal();
 
+        GUILayout.Space(20);
+
         textureName = EditorGUILayout.TextField("Name", textureName);
         width = EditorGUILayout.IntField("Width", width);
         height = EditorGUILayout.IntField("Height", height);
-        invereseSmoothness = EditorGUILayout.Toggle("Inverse Smoothness", invereseSmoothness);
+        inverseSmoothness = EditorGUILayout.Toggle("Inverse Smoothness", inverseSmoothness);
 
         GUILayout.Space(50);
 
@@ -177,7 +189,7 @@ public class TexturePacking : EditorWindow
         resTexture = TextureField("Detail Mask Map", resTexture);
         EditorGUILayout.EndHorizontal();
 
-        GUILayout.Space(50);
+        GUILayout.Space(20);
 
         if (GUILayout.Button("Pack Texture"))
         {
@@ -189,19 +201,28 @@ public class TexturePacking : EditorWindow
         {
             Debug.Log("U wanna pack?");
 
-            Pack(rTexture, ColorUnpackDetailMask(Channel.Red), "_albedo");
-            Pack(gTexture, ColorUnpackDetailMask(Channel.Green), "_normal");
-            Pack(bTexture, ColorUnpackDetailMask(Channel.Blue), "_smoothness");
+            if (resTexture != null)
+            {
+                Pack(rTexture, ColorUnpackDetailMask(Channel.Red), "_albedo");
+                Pack(gTexture, ColorUnpackDetailMask(Channel.Green), "_normal");
+                Pack(bTexture, ColorUnpackDetailMask(Channel.Blue), "_smoothness");
+            }
+            else
+            {
+                Debug.LogError("No Mask Texture chosen!");
+            }
         }
+
+        if (GUILayout.Button("Desaturate Albedo"))
+        {
+            Pack(resTexture, ColorDesaturateMask(), "");
+        }
+
+        GUILayout.Space(20);
 
         if (GUILayout.Button("Go Back"))
         {
             stage = UIStage.Choosing;
-        }
-
-        if (GUILayout.Button("Desaturate"))
-        {
-            Pack(resTexture, ColorDesaturateMask(), "");
         }
 
         GUILayout.EndVertical();
@@ -311,14 +332,16 @@ public class TexturePacking : EditorWindow
                     }
                 }
                 return colors;
+            
 
             case Channel.Alpha:
                 for (int i = 0; i < colors.Length; i++)
                 {
                     colors[i] = new Color();
-                    if (resTexture != null)
+
+                    if (!inverseSmoothness)
                     {
-                        if (!invereseSmoothness)
+                        if (resTexture != null)
                         {
                             colors[i].r = resTexture.GetPixel(i % width, i / width).a;
                             colors[i].g = resTexture.GetPixel(i % width, i / width).a;
@@ -327,20 +350,30 @@ public class TexturePacking : EditorWindow
                         }
                         else
                         {
+                            colors[i].r = 0;
+                            colors[i].g = 0;
+                            colors[i].b = 0;
+                            colors[i].a = 0;
+                        }
+                    }
+                    else
+                    {
+                        if (resTexture != null)
+                        {
                             colors[i].r = 1 - resTexture.GetPixel(i % width, i / width).a;
                             colors[i].g = 1 - resTexture.GetPixel(i % width, i / width).a;
                             colors[i].b = 1 - resTexture.GetPixel(i % width, i / width).a;
                             colors[i].a = 1;
                         }
+                        else
+                        {
+                            colors[i].r = 1;
+                            colors[i].g = 1;
+                            colors[i].b = 1;
+                            colors[i].a = 1;
+                        }
                     }
-                    else
-                    {
-                        colors[i].r = 1;
-                        colors[i].g = 1;
-                        colors[i].b = 1;
-                        colors[i].a = 1;
-                    }
-                }
+                }        
                 return colors;
         }
         return colors;
@@ -356,20 +389,10 @@ public class TexturePacking : EditorWindow
                 for (int i = 0; i < colors.Length; i++)
                 {
                     colors[i] = new Color();
-                    if (resTexture != null)
-                    {
-                        colors[i].r = 1 - resTexture.GetPixel(i % width, i / width).r;
-                        colors[i].g = 1 - resTexture.GetPixel(i % width, i / width).g;
-                        colors[i].b = 1 - resTexture.GetPixel(i % width, i / width).b;
-                        colors[i].a = 1;
-                    }
-                    else
-                    {
-                        colors[i].r = 1;
-                        colors[i].g = 1;
-                        colors[i].b = 1;
-                        colors[i].a = 1;
-                    }
+                    colors[i].r = 1 - resTexture.GetPixel(i % width, i / width).r;
+                    colors[i].g = 1 - resTexture.GetPixel(i % width, i / width).g;
+                    colors[i].b = 1 - resTexture.GetPixel(i % width, i / width).b;
+                    colors[i].a = 1;
                 }
                 return colors;
 
@@ -377,20 +400,10 @@ public class TexturePacking : EditorWindow
                 for (int i = 0; i < colors.Length; i++)
                 {
                     colors[i] = new Color();
-                    if (resTexture != null)
-                    {
-                        colors[i].r = resTexture.GetPixel(i % width, i / width).a;
-                        colors[i].g = resTexture.GetPixel(i % width, i / width).g;
-                        colors[i].b = 0;
-                        colors[i].a = 1;
-                    }
-                    else
-                    {
-                        colors[i].r = 1;
-                        colors[i].g = 1;
-                        colors[i].b = 1;
-                        colors[i].a = 1;
-                    }
+                    colors[i].r = resTexture.GetPixel(i % width, i / width).a;
+                    colors[i].g = resTexture.GetPixel(i % width, i / width).g;
+                    colors[i].b = 1;
+                    colors[i].a = 1;
                 }
                 return colors;
 
@@ -398,28 +411,18 @@ public class TexturePacking : EditorWindow
                 for (int i = 0; i < colors.Length; i++)
                 {
                     colors[i] = new Color();
-                    if (resTexture != null)
+                    if (!inverseSmoothness)
                     {
-                        if (!invereseSmoothness)
-                        {
-                            colors[i].r = resTexture.GetPixel(i % width, i / width).b;
-                            colors[i].g = resTexture.GetPixel(i % width, i / width).b;
-                            colors[i].b = resTexture.GetPixel(i % width, i / width).b;
-                            colors[i].a = 1;
-                        }
-                        else
-                        {
-                            colors[i].r = 1 - resTexture.GetPixel(i % width, i / width).b;
-                            colors[i].g = 1 - resTexture.GetPixel(i % width, i / width).b;
-                            colors[i].b = 1 - resTexture.GetPixel(i % width, i / width).b;
-                            colors[i].a = 1;
-                        }
+                        colors[i].r = resTexture.GetPixel(i % width, i / width).b;
+                        colors[i].g = resTexture.GetPixel(i % width, i / width).b;
+                        colors[i].b = resTexture.GetPixel(i % width, i / width).b;
+                        colors[i].a = 1;
                     }
                     else
                     {
-                        colors[i].r = 1;
-                        colors[i].g = 1;
-                        colors[i].b = 1;
+                        colors[i].r = 1 - resTexture.GetPixel(i % width, i / width).b;
+                        colors[i].g = 1 - resTexture.GetPixel(i % width, i / width).b;
+                        colors[i].b = 1 - resTexture.GetPixel(i % width, i / width).b;
                         colors[i].a = 1;
                     }
                 }
@@ -451,15 +454,21 @@ public class TexturePacking : EditorWindow
             else
                 colors[i].b = 0;
 
-            if (aTexture != null)
+
+            if (!inverseSmoothness)
             {
-                if (!invereseSmoothness)
-                    colors[i].a = aTexture.GetPixel(i % width, i / width).r;
+                if (aTexture != null)
+                    colors[i].a = aTexture.GetPixel(i % width, i / width).a;
                 else
-                    colors[i].a = 1 - aTexture.GetPixel(i % width, i / width).r;
+                    colors[i].a = 1;
             }
             else
-                colors[i].a = 1;
+            {
+                if (aTexture != null)
+                    colors[i].a = 1 - aTexture.GetPixel(i % width, i / width).a;
+                else
+                    colors[i].a = 0;
+            }
         }
 
         return colors;
@@ -480,8 +489,8 @@ public class TexturePacking : EditorWindow
 
             if (rTexture != null)
             {
-                DesaturateColor(colors[i]);
-                colors[i].r = rTexture.GetPixel(i % width, i / width).r;
+                Color tmp = DesaturateColor(rTexture.GetPixel(i % width, i / width));
+                colors[i].r = tmp.r;
             }
             else
                 colors[i].r = 0;
@@ -491,15 +500,20 @@ public class TexturePacking : EditorWindow
             else
                 colors[i].g = 0;
 
-            if (bTexture != null)
+            if (!inverseSmoothness)
             {
-                if (!invereseSmoothness)
+                if (bTexture != null)
                     colors[i].b = bTexture.GetPixel(i % width, i / width).b;
                 else
-                    colors[i].b = 1 - bTexture.GetPixel(i % width, i / width).b;
+                    colors[i].b = 1;
             }
             else
-                colors[i].b = 0;
+            {
+                if(bTexture != null)
+                    colors[i].b = 1 - bTexture.GetPixel(i % width, i / width).b;
+                else 
+                    colors[i].b = 0;
+            }
 
             if (gTexture != null)
                 colors[i].a = gTexture.GetPixel(i % width, i / width).r;
@@ -516,8 +530,11 @@ public class TexturePacking : EditorWindow
 
         for (int i = 0; i < colors.Length; i++)
         {
-            colors[i] = rTexture.GetPixel(i % width, i / width);
-            DesaturateColor(colors[i]);
+            //colors[i] = rTexture.GetPixel(i % width, i / width);
+            //DesaturateColor(colors[i]);
+
+            Color tmp = DesaturateColor(rTexture.GetPixel(i % width, i / width));
+            colors[i] =tmp;
         }
 
         return colors;
@@ -525,7 +542,7 @@ public class TexturePacking : EditorWindow
 
     private Color DesaturateColor(Color color)
     {
-        double f = 0.2; // desaturate by 20%
+        double f = 0.5; // desaturate by 20%
         double L = 0.3 * color.r + 0.6 * color.g + 0.1 * color.b;
         color.r = (float)(color.r + f * (L - color.r));
         color.g = (float)(color.g + f * (L - color.g));
