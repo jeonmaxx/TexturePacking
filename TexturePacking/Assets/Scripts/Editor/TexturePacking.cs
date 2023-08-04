@@ -141,7 +141,7 @@ public class TexturePacking : EditorWindow
             Pack(rTexture, ColorUnpackMask(Channel.Red), "_metallic");
             Pack(gTexture, ColorUnpackMask(Channel.Green), "_occlusion");
             Pack(bTexture, ColorUnpackMask(Channel.Blue), "_detailMask");
-            Pack(aTexture, ColorUnpackMask(Channel.Alpha), "_alpha");
+            Pack(aTexture, ColorUnpackMask(Channel.Alpha), "_smoothness");
         }
 
         if (GUILayout.Button("Go Back"))
@@ -173,11 +173,27 @@ public class TexturePacking : EditorWindow
 
         GUILayout.Space(50);
 
+        EditorGUILayout.BeginHorizontal();
+        resTexture = TextureField("Detail Mask Map", resTexture);
+        EditorGUILayout.EndHorizontal();
+
+        GUILayout.Space(50);
+
         if (GUILayout.Button("Pack Texture"))
         {
             Debug.Log("U wanna pack?");
             Pack(resTexture, ColorArrayDetailMask(), "") ;
         }
+
+        if (GUILayout.Button("Unpack Texture"))
+        {
+            Debug.Log("U wanna pack?");
+
+            Pack(rTexture, ColorUnpackDetailMask(Channel.Red), "_albedo");
+            Pack(gTexture, ColorUnpackDetailMask(Channel.Green), "_normal");
+            Pack(bTexture, ColorUnpackDetailMask(Channel.Blue), "_smoothness");
+        }
+
         if (GUILayout.Button("Go Back"))
         {
             stage = UIStage.Choosing;
@@ -330,6 +346,88 @@ public class TexturePacking : EditorWindow
         return colors;
     }
 
+    private Color[] ColorUnpackDetailMask(Channel channel)
+    {
+        Color[] colors = new Color[width * height];
+
+        switch (channel)
+        {
+            case Channel.Red:
+                for (int i = 0; i < colors.Length; i++)
+                {
+                    colors[i] = new Color();
+                    if (resTexture != null)
+                    {
+                        colors[i].r = 1 - resTexture.GetPixel(i % width, i / width).r;
+                        colors[i].g = 1 - resTexture.GetPixel(i % width, i / width).g;
+                        colors[i].b = 1 - resTexture.GetPixel(i % width, i / width).b;
+                        colors[i].a = 1;
+                    }
+                    else
+                    {
+                        colors[i].r = 1;
+                        colors[i].g = 1;
+                        colors[i].b = 1;
+                        colors[i].a = 1;
+                    }
+                }
+                return colors;
+
+            case Channel.Green:
+                for (int i = 0; i < colors.Length; i++)
+                {
+                    colors[i] = new Color();
+                    if (resTexture != null)
+                    {
+                        colors[i].r = resTexture.GetPixel(i % width, i / width).a;
+                        colors[i].g = resTexture.GetPixel(i % width, i / width).g;
+                        colors[i].b = 0;
+                        colors[i].a = 1;
+                    }
+                    else
+                    {
+                        colors[i].r = 1;
+                        colors[i].g = 1;
+                        colors[i].b = 1;
+                        colors[i].a = 1;
+                    }
+                }
+                return colors;
+
+            case Channel.Blue:
+                for (int i = 0; i < colors.Length; i++)
+                {
+                    colors[i] = new Color();
+                    if (resTexture != null)
+                    {
+                        if (!invereseSmoothness)
+                        {
+                            colors[i].r = resTexture.GetPixel(i % width, i / width).b;
+                            colors[i].g = resTexture.GetPixel(i % width, i / width).b;
+                            colors[i].b = resTexture.GetPixel(i % width, i / width).b;
+                            colors[i].a = 1;
+                        }
+                        else
+                        {
+                            colors[i].r = 1 - resTexture.GetPixel(i % width, i / width).b;
+                            colors[i].g = 1 - resTexture.GetPixel(i % width, i / width).b;
+                            colors[i].b = 1 - resTexture.GetPixel(i % width, i / width).b;
+                            colors[i].a = 1;
+                        }
+                    }
+                    else
+                    {
+                        colors[i].r = 1;
+                        colors[i].g = 1;
+                        colors[i].b = 1;
+                        colors[i].a = 1;
+                    }
+                }
+                return colors;
+        }
+        return colors;
+    }
+
     private Color[] ColorArrayMask()
     {
         Color[] colors = new Color[width * height];
@@ -338,7 +436,6 @@ public class TexturePacking : EditorWindow
         {
             colors[i] = new Color();
 
-            //Oben das rot nimmt er nicht, warum?
             if (rTexture != null)
                 colors[i].r = rTexture.GetPixel(i % width, i / width).r;
             else
@@ -381,10 +478,10 @@ public class TexturePacking : EditorWindow
         {
             colors[i] = new Color();
 
-            if (aTexture != null)
+            if (rTexture != null)
             {
                 DesaturateColor(colors[i]);
-                colors[i].r = aTexture.GetPixel(i % width, i / width).r;
+                colors[i].r = rTexture.GetPixel(i % width, i / width).r;
             }
             else
                 colors[i].r = 0;
@@ -404,7 +501,7 @@ public class TexturePacking : EditorWindow
             else
                 colors[i].b = 0;
 
-            if (aTexture != null)
+            if (gTexture != null)
                 colors[i].a = gTexture.GetPixel(i % width, i / width).r;
             else
                 colors[i].a = 0;
