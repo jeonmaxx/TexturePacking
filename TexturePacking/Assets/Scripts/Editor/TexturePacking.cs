@@ -572,11 +572,11 @@ public class TexturePacking : EditorWindow
         }
         return colors;
     }
-
+ 
     /// <summary>
     /// Hier wird einer Textur der TextureType NormalMap gegeben
     /// </summary>
-    void OnPostprocessTexture()
+    private void OnPostprocessTexture()
     {
         TextureImporter importer = (TextureImporter)TextureImporter.GetAtPath(normalPath);
         importer.textureType = TextureImporterType.NormalMap;
